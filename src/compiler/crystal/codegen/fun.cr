@@ -397,7 +397,7 @@ class Crystal::CodeGenVisitor
       end
 
       @modules[type_name] ||= begin
-        llvm_mod = LLVM::Module.new(type_name)
+        llvm_mod = CodeGenModule.new(type_name, @mod)
         define_symbol_table llvm_mod
         llvm_mod
       end

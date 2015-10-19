@@ -16,6 +16,10 @@ struct LLVM::Type
     new LibLLVM.int_type(bits)
   end
 
+  def self.int(bits, context)
+    new LibLLVM.int_type_in_context(context, bits)
+  end
+
   def self.float
     new LibLLVM.float_type
   end

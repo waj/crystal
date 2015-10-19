@@ -8,10 +8,23 @@ require "./llvm_builder_helper"
 LLVM.init_x86
 
 module Crystal
-  MAIN_NAME = "__crystal_main"
-  RAISE_NAME = "__crystal_raise"
-  MALLOC_NAME = "__crystal_malloc"
+  MAIN_NAME    = "__crystal_main"
+  RAISE_NAME   = "__crystal_raise"
+  MALLOC_NAME  = "__crystal_malloc"
   REALLOC_NAME = "__crystal_realloc"
+
+  struct CodeGenModule
+    getter llvm_mod
+    getter llvm_typer
+
+    def initialize(name, program)
+      @context = LLVM::Context.new
+      @llvm_mod = LLVM::Module.new(name, @context)
+      @llvm_typer = LLVMTyper.new(program, @context)
+    end
+
+    forward_missing_to @llvm_mod
+  end
 
   class Program
     def run(code, filename = nil)
@@ -34,13 +47,13 @@ module Crystal
       main_return_type = LLVM::Void if node.type.nil_type?
 
       wrapper = llvm_mod.functions.add("__evaluate_wrapper", [] of LLVM::Type, main_return_type) do |func|
-        func.basic_blocks.append "entry"  do |builder|
-          argc = LLVM.int(LLVM::Int32, 0)
-          argv = LLVM::VoidPointer.pointer.null
-          ret = builder.call(main, [argc, argv])
-          (node.type.void? || node.type.nil_type?) ? builder.ret : builder.ret(ret)
-        end
-      end
+                  func.basic_blocks.append "entry" do |builder|
+                    argc = LLVM.int(LLVM::Int32, 0)
+                    argv = LLVM::VoidPointer.pointer.null
+                    ret = builder.call(main, [argc, argv])
+                    (node.type.void? || node.type.nil_type?) ? builder.ret : builder.ret(ret)
+                  end
+                end
 
       llvm_mod.verify
 
@@ -48,7 +61,7 @@ module Crystal
       engine.run_function wrapper, [] of LLVM::GenericValue
     end
 
-    def codegen(node, single_module = false, debug = false, llvm_mod = LLVM::Module.new("main_module"), expose_crystal_main = true)
+    def codegen(node, single_module = false, debug = false, llvm_mod = CodeGenModule.new("main_module", self), expose_crystal_main = true)
       visitor = CodeGenVisitor.new self, node, single_module: single_module, debug: debug, llvm_mod: llvm_mod, expose_crystal_main: expose_crystal_main
       node.accept visitor
       visitor.finish
@@ -58,9 +71,9 @@ module Crystal
   end
 
   class CodeGenVisitor < Visitor
-    PERSONALITY_NAME = "__crystal_personality"
+    PERSONALITY_NAME   = "__crystal_personality"
     GET_EXCEPTION_NAME = "__crystal_get_exception"
-    SYMBOL_TABLE_NAME = ":symbol_table"
+    SYMBOL_TABLE_NAME  = ":symbol_table"
 
     include LLVMBuilderHelper
 
@@ -71,7 +84,6 @@ module Crystal
     getter :main
     getter :modules
     getter :context
-    getter :llvm_typer
     getter :alloca_block
     getter :entry_block
     property :last
@@ -99,14 +111,13 @@ module Crystal
     record Handler, node, context
     record StringKey, mod, string
 
-    def initialize(@mod, @node, @single_module = false, @debug = false, @llvm_mod = LLVM::Module.new("main_module"), expose_crystal_main = true)
+    def initialize(@mod, @node, @single_module = false, @debug = false, @llvm_mod = CodeGenModule.new("main_module", @mod), expose_crystal_main = true)
       @main_mod = @llvm_mod
       @abi = @mod.target_machine.abi
-      @llvm_typer = LLVMTyper.new(@mod)
       @llvm_id = LLVMId.new(@mod)
       @main_ret_type = node.type
-      ret_type = @llvm_typer.llvm_type(node.type)
-      @main = @llvm_mod.functions.add(MAIN_NAME, [LLVM::Int32, LLVM::VoidPointer.pointer], ret_type)
+      ret_type = llvm_typer.llvm_type(node.type)
+      @main = @llvm_mod.functions.add(MAIN_NAME, [llvm_typer.llvm_type(@mod.int32), llvm_typer.llvm_type(@mod.uint8_pointer)], ret_type)
       @main.linkage = LLVM::Linkage::Internal unless expose_crystal_main
 
       emit_main_def_debug_metadata(@main, "??") if @debug
@@ -125,14 +136,14 @@ module Crystal
 
       @dbg_kind = LibLLVM.get_md_kind_id("dbg", 3)
 
-      @modules = {"" => @main_mod} of String => LLVM::Module
-      @types_to_modules = {} of Type => LLVM::Module
+      @modules = {"" => @main_mod} of String => CodeGenModule
+      @types_to_modules = {} of Type => CodeGenModule
 
       @alloca_block, @entry_block = new_entry_block_chain "alloca", "entry"
 
       @in_lib = false
       @strings = {} of StringKey => LLVM::Value
-      @symbols = {} of String => Int32
+      @symbols = {} of String    => Int32
       @symbol_table_values = [] of LLVM::Value
       mod.symbols.each_with_index do |sym, index|
         @symbols[sym] = index
@@ -169,6 +180,10 @@ module Crystal
 
     def wrap_builder(builder)
       CrystalLLVMBuilder.new builder, @mod.printf(@llvm_mod)
+    end
+
+    def llvm_typer
+      @llvm_mod.llvm_typer
     end
 
     def define_symbol_table(llvm_mod)
@@ -316,10 +331,10 @@ module Crystal
       request_value do
         type = node.type as TupleInstanceType
         @last = allocate_tuple(type) do |tuple_type, i|
-          exp = node.elements[i]
-          exp.accept self
-          {exp.type, @last}
-        end
+                  exp = node.elements[i]
+                  exp.accept self
+                  {exp.type, @last}
+                end
       end
       false
     end
@@ -888,10 +903,10 @@ module Crystal
 
     def cant_pass_closure_to_c_exception_call
       @cant_pass_closure_to_c_exception_call ||= begin
-        call = Call.global("raise", StringLiteral.new("passing a closure to C is not allowed"))
-        @mod.infer_type_intermediate call
-        call
-      end
+                                                   call = Call.global("raise", StringLiteral.new("passing a closure to C is not allowed"))
+                                                   @mod.infer_type_intermediate call
+                                                   call
+                                                 end
     end
 
     def visit(node : IsA)
@@ -964,8 +979,8 @@ module Crystal
         # Special case: if the type is a type tuple we need to create a tuple for it
         if node_type.is_a?(TupleInstanceType)
           @last = allocate_tuple(node_type) do |tuple_type, i|
-            {tuple_type, type_id(tuple_type)}
-          end
+                    {tuple_type, type_id(tuple_type)}
+                  end
         else
           @last = type_id(node.type)
         end
@@ -1254,12 +1269,12 @@ module Crystal
       @llvm_mod = @main_mod
 
       a_fun = @main_mod.functions.add(name, arg_types, return_type) do |func|
-        context.fun = func
-        func.basic_blocks.append "entry" do |builder|
-          @builder = wrap_builder builder
-          yield func
-        end
-      end
+                context.fun = func
+                func.basic_blocks.append "entry" do |builder|
+                  @builder = wrap_builder builder
+                  yield func
+                end
+              end
 
       @builder = old_builder
       @llvm_mod = old_llvm_mod
@@ -1306,7 +1321,7 @@ module Crystal
       end
     end
 
-    def br_block_chain *blocks
+    def br_block_chain(*blocks)
       old_block = insert_block
 
       0.upto(blocks.size - 2) do |i|
@@ -1393,7 +1408,7 @@ module Crystal
 
       if closure_vars || self_closured
         closure_vars ||= [] of MetaVar
-        closure_type = @llvm_typer.closure_context_type(closure_vars, parent_closure_type, (self_closured ? current_context.type : nil))
+        closure_type = llvm_typer.closure_context_type(closure_vars, parent_closure_type, (self_closured ? current_context.type : nil))
         closure_ptr = malloc closure_type
         closure_vars.each_with_index do |var, i|
           current_context.vars[var.name] = LLVMVar.new(gep(closure_ptr, 0, i, var.name), var.type)
@@ -1650,22 +1665,22 @@ module Crystal
     end
 
     def build_string_constant(str, name = "str")
-      name = "#{name[0 .. 18]}..." if name.bytesize > 18
+      name = "#{name[0..18]}..." if name.bytesize > 18
       name = name.gsub '@', '.'
       name = "'#{name}'"
       key = StringKey.new(@llvm_mod, str)
       @strings[key] ||= begin
-        global = @llvm_mod.globals.add(@llvm_typer.llvm_string_type(str.bytesize), name)
-        global.linkage = LLVM::Linkage::Private
-        global.global_constant = true
-        global.initializer = LLVM.struct [
-                               type_id(@mod.string),
-                               int32(str.bytesize),
-                               int32(str.size),
-                               LLVM.string(str),
-                             ]
-        cast_to global, @mod.string
-      end
+                          global = @llvm_mod.globals.add(llvm_typer.llvm_string_type(str.bytesize), name)
+                          global.linkage = LLVM::Linkage::Private
+                          global.global_constant = true
+                          global.initializer = LLVM.struct [
+                                                 type_id(@mod.string),
+                                                 int32(str.bytesize),
+                                                 int32(str.size),
+                                                 LLVM.string(str),
+                                               ]
+                          cast_to global, @mod.string
+                        end
     end
 
     def request_value(request = true)

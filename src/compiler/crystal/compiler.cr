@@ -15,20 +15,20 @@ module Crystal
     record Source, filename, code
     record Result, program, node, original_node
 
-    property  cross_compile_flags
-    property  flags
+    property cross_compile_flags
+    property flags
     property? debug
     property? dump_ll
-    property  link_flags
-    property  mcpu
+    property link_flags
+    property mcpu
     property? color
     property? no_codegen
-    property  n_threads
-    property  prelude
+    property n_threads
+    property prelude
     property? release
     property? single_module
     property? stats
-    property  target_triple
+    property target_triple
     property? verbose
     property? wants_doc
     property emit
@@ -83,9 +83,9 @@ module Crystal
 
       timing("Parse") do
         nodes = sources.map do |source|
-          program.add_to_requires source.filename
-          parse source
-        end
+                  program.add_to_requires source.filename
+                  parse source
+                end
         node = Expressions.from(nodes)
 
         require_node = Require.new(@prelude)
@@ -139,8 +139,8 @@ module Crystal
       lib_flags = program.lib_flags
 
       llvm_modules = timing("Codegen (crystal)") do
-        program.codegen node, debug: @debug, single_module: @single_module || @release || @cross_compile_flags || @emit, expose_crystal_main: false
-      end
+                       program.codegen node, debug: @debug, single_module: @single_module || @release || @cross_compile_flags || @emit, expose_crystal_main: false
+                     end
 
       if @cross_compile_flags
         output_dir = "."
@@ -153,8 +153,8 @@ module Crystal
       bc_flags_changed = check_bc_flags_changed output_dir
 
       units = llvm_modules.map do |type_name, llvm_mod|
-        CompilationUnit.new(self, type_name, llvm_mod, output_dir, bc_flags_changed)
-      end
+                CompilationUnit.new(self, type_name, llvm_mod, output_dir, bc_flags_changed)
+              end
 
       if @cross_compile_flags
         cross_compile program, units, lib_flags, output_filename
@@ -225,23 +225,34 @@ module Crystal
     end
 
     private def codegen_many_units(units, target_triple, multithreaded)
-      jobs_count = 0
+      mutex = Mutex.new
+      threads = 1.times.map do
+                  Thread.new do
+                    while unit = mutex.synchronize { units.pop? }
+                      codegen_single_unit(unit, target_triple, multithreaded)
+                    end
+                  end
+                end.to_a
 
-      while unit = units.pop?
-        fork { codegen_single_unit(unit, target_triple, multithreaded) }
+      threads.map &.join
 
-        jobs_count += 1
+      # jobs_count = 0
 
-        if jobs_count >= @n_threads
-          LibC.waitpid(-1, out stat_loc, 0)
-          jobs_count -= 1
-        end
-      end
+      # while unit = units.pop?
+      #   fork { codegen_single_unit(unit, target_triple, multithreaded) }
 
-      while jobs_count > 0
-        LibC.waitpid(-1, out stat_loc_2, 0)
-        jobs_count -= 1
-      end
+      #   jobs_count += 1
+
+      #   if jobs_count >= @n_threads
+      #     LibC.waitpid(-1, out stat_loc, 0)
+      #     jobs_count -= 1
+      #   end
+      # end
+
+      # while jobs_count > 0
+      #   LibC.waitpid(-1, out stat_loc_2, 0)
+      #   jobs_count -= 1
+      # end
     end
 
     private def codegen_single_unit(unit, target_triple, multithreaded)
@@ -257,48 +268,48 @@ module Crystal
 
     def target_machine
       @target_machine ||= begin
-        triple = @target_triple || LLVM.default_target_triple
-        TargetMachine.create(triple, @mcpu || "", @release)
-      end
+                            triple = @target_triple || LLVM.default_target_triple
+                            TargetMachine.create(triple, @mcpu || "", @release)
+                          end
     end
 
     def optimize(llvm_mod)
       fun_pass_manager = llvm_mod.new_function_pass_manager
       fun_pass_manager.add_target_data target_machine.data_layout
       pass_manager_builder.populate fun_pass_manager
-      fun_pass_manager.run llvm_mod
+      fun_pass_manager.run llvm_mod.llvm_mod
 
       module_pass_manager.run llvm_mod
     end
 
     private def module_pass_manager
       @module_pass_manager ||= begin
-        mod_pass_manager = LLVM::ModulePassManager.new
-        mod_pass_manager.add_target_data target_machine.data_layout
-        pass_manager_builder.populate mod_pass_manager
-        mod_pass_manager
-      end
+                                 mod_pass_manager = LLVM::ModulePassManager.new
+                                 mod_pass_manager.add_target_data target_machine.data_layout
+                                 pass_manager_builder.populate mod_pass_manager
+                                 mod_pass_manager
+                               end
     end
 
     private def pass_manager_builder
       @pass_manager_builder ||= begin
-        registry = LLVM::PassRegistry.instance
-        registry.initialize_all
+                                  registry = LLVM::PassRegistry.instance
+                                  registry.initialize_all
 
-        builder = LLVM::PassManagerBuilder.new
-        builder.opt_level = 3
-        builder.size_level = 0
-        builder.use_inliner_with_threshold = 275
-        builder
-      end
+                                  builder = LLVM::PassManagerBuilder.new
+                                  builder.opt_level = 3
+                                  builder.size_level = 0
+                                  builder.use_inliner_with_threshold = 275
+                                  builder
+                                end
     end
 
-    private def system(command, args=nil)
+    private def system(command, args = nil)
       puts command if verbose?
 
       ::system(command, args)
       unless $?.success?
-        msg  = $?.normal_exit? ? "code: #{$?.exit_code}" : "signal: #{$?.exit_signal} (#{$?.exit_signal.value})"
+        msg = $?.normal_exit? ? "code: #{$?.exit_code}" : "signal: #{$?.exit_signal} (#{$?.exit_signal.value})"
         code = $?.normal_exit? ? $?.exit_code : 1
         error "execution of command failed with #{msg}: `#{command}`", exit_code: code
       end
@@ -330,13 +341,13 @@ module Crystal
       def initialize(@compiler, type_name, @llvm_mod, @output_dir, @bc_flags_changed)
         type_name = "_main" if type_name == ""
         @name = type_name.gsub do |char|
-          case char
-          when 'a'..'z', 'A'..'Z', '0'..'9', '_'
-            char
-          else
-            char.ord
-          end
-        end
+                  case char
+                  when 'a'..'z', 'A'..'Z', '0'..'9', '_'
+                    char
+                  else
+                    char.ord
+                  end
+                end
 
         if @name.size > 50
           # 17 chars from name + 1 (dash) + 32 (md5) = 50
@@ -428,7 +439,7 @@ module Crystal
   def self.relative_filename(filename : String)
     dir = Dir.working_directory
     if filename.starts_with?(dir)
-      filename = filename[dir.size .. -1]
+      filename = filename[dir.size..-1]
       if filename.starts_with? "/"
         ".#{filename}"
       else

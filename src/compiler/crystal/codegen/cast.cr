@@ -366,7 +366,7 @@ class Crystal::CodeGenVisitor
     # To store a boolean in a union
     # we sign-extend it to the size in bits of the union
     union_value_type = llvm_union_value_type(union_type)
-    union_size = @llvm_typer.size_of(union_value_type)
+    union_size = llvm_typer.size_of(union_value_type)
     int_type = LLVM::Type.int((union_size * 8).to_i32)
 
     bool_as_extended_int = builder.zext(value, int_type)

@@ -154,6 +154,15 @@ lib LibLLVM
   fun int32_type = LLVMInt32Type : TypeRef
   fun int64_type = LLVMInt64Type : TypeRef
   fun int_type = LLVMIntType(bits : Int32) : TypeRef
+
+  fun int1_type_in_context = LLVMInt1TypeInContext(ContextRef) : TypeRef
+  fun int8_type_in_context = LLVMInt8TypeInContext(ContextRef) : TypeRef
+  fun int16_type_in_context = LLVMInt16TypeInContext(ContextRef) : TypeRef
+  fun int32_type_in_context = LLVMInt32TypeInContext(ContextRef) : TypeRef
+  fun int64_type_in_context = LLVMInt64TypeInContext(ContextRef) : TypeRef
+  fun int_type_in_context = LLVMIntTypeInContext(context : ContextRef, bits : Int32) : TypeRef
+
+
   fun is_constant = LLVMIsConstant(val : ValueRef) : Int32
   fun is_function_var_arg = LLVMIsFunctionVarArg(ty : TypeRef) : Int32
   fun md_node = LLVMMDNode(values : ValueRef*, count : Int32) : ValueRef

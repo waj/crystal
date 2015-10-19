@@ -355,6 +355,9 @@ class Crystal::CodeGenVisitor
       @last = builder.invoke func, call_args, invoke_out_block, rescue_block
       position_at_end invoke_out_block
     else
+      llvm_mod.dump
+      func.dump
+      call_args.each &.dump
       @last = call func, call_args
     end
 

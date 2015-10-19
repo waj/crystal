@@ -2,8 +2,12 @@ class LLVM::Module
   getter unwrap
   getter name
 
-  def initialize(@name)
-    @unwrap = LibLLVM.module_create_with_name @name
+  def initialize(@name, @context = nil)
+    @unwrap = if context = @context
+        LibLLVM.module_create_with_name_in_context @name, context
+      else
+        LibLLVM.module_create_with_name @name
+      end
     @owned = false
   end
 

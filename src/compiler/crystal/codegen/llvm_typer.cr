@@ -12,7 +12,7 @@ module Crystal
 
     alias TypeCache = Hash(Type, LLVM::Type)
 
-    def initialize(program)
+    def initialize(@program, @context)
       @cache = TypeCache.new
       @struct_cache = TypeCache.new
       @union_value_cache = TypeCache.new
@@ -56,7 +56,8 @@ module Crystal
     end
 
     def create_llvm_type(type : IntegerType)
-      LLVM::Type.int(8 * type.bytes)
+      puts type
+      LLVM::Type.int(8 * type.bytes, @context)
     end
 
     def create_llvm_type(type : FloatType)
@@ -254,7 +255,7 @@ module Crystal
         element_types = Array(LLVM::Type).new(ivars_size)
 
         unless type.struct?
-          element_types.push LLVM::Int32 # For the type id
+          element_types.push llvm_type(@program.int32) # For the type id
         end
 
         ivars.each do |name, ivar|

@@ -375,7 +375,7 @@ class Crystal::CodeGenVisitor
   def union_field_ptr(field_type, pointer)
     ptr = aggregate_index pointer, 0
     if field_type.is_a?(FunInstanceType)
-      bit_cast ptr, @llvm_typer.fun_type(field_type).pointer
+      bit_cast ptr, llvm_typer.fun_type(field_type).pointer
     else
       cast_to_pointer ptr, field_type
     end

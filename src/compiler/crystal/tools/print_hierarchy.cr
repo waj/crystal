@@ -13,7 +13,7 @@ module Crystal
       @indents = [] of Bool
       @printed = Set(Type).new
       @targets = Set(Type).new
-      @llvm_typer = LLVMTyper.new(@program)
+      @llvm_typer = LLVMTyper.new(@program, LLVM::Context.global)
     end
 
     def execute

@@ -4,7 +4,7 @@ module Crystal
   class CodeGenVisitor
     CRYSTAL_LANG_DEBUG_IDENTIFIER = 0x8002_u32
     def di_builder(llvm_module = @llvm_mod || @main_mod)
-      di_builders = @di_builders ||= {} of LLVM::Module => LLVM::DIBuilder
+      di_builders = @di_builders ||= {} of CodeGenModule => LLVM::DIBuilder
       di_builders[llvm_module] ||= LLVM::DIBuilder.new(llvm_module)
     end
 
