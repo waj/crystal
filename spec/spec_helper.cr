@@ -167,25 +167,75 @@ def run(code, filename = nil)
   # the program and run it, printing the last
   # expression and using that to compare the result.
   if code.includes?(%(require "prelude"))
-    ast = Parser.parse(code) as Expressions
+    build_executable(code, print: true) do |output_filename|
+      output = `#{output_filename}`
+      SpecRunOutput.new(output)
+    end
+  else
+    Program.new.run(code, filename: filename)
+  end
+end
+
+def debug(script, code)
+  code = code.strip
+  build_executable(code, debug: true) do |output_filename|
+    script_filename = Crystal.tempfile("debug-script")
+    checks = [] of String
+    File.open(script_filename, "w") do |script_file|
+      script.each_line do |script_line|
+        script_line = script_line.strip
+        next if script_line.empty?
+        if script_line.starts_with?("(gdb)")
+          script_file.puts script_line["(gdb)".size..-1].strip
+        else
+          checks << script_line
+        end
+      end
+    end
+
+    begin
+      output = Process.run("gdb", ["-quiet", "-batch", "-nx", "-x", script_filename, output_filename]) do |gdb|
+        gdb.output.read
+      end
+
+      puts output
+
+      $?.normal_exit?.should be_true
+      output.each_line do |output_line|
+        break if checks.empty?
+        if output_line.chomp == checks[0]
+          checks.shift
+        end
+      end
+
+      checks.should eq([] of String)
+    ensure
+      File.delete(script_filename)
+    end
+  end
+end
+
+def build_executable(code, print = false, debug = false)
+  ast = Parser.parse(code) as Expressions
+  if print
     last = ast.expressions.last
     assign = Assign.new(Var.new("__tempvar"), last)
     call = Call.new(nil, "print", Var.new("__tempvar"))
     exps = Expressions.new([assign, call] of ASTNode)
     ast.expressions[-1] = exps
     code = ast.to_s
+  end
 
-    output_filename = Crystal.tempfile("crystal-spec-output")
+  output_filename = Crystal.tempfile("crystal-spec-output")
 
-    compiler = Compiler.new
-    compiler.compile Compiler::Source.new("spec", code), output_filename
+  compiler = Compiler.new
+  compiler.debug = debug
+  compiler.compile Compiler::Source.new("spec", code), output_filename
 
-    output = `#{output_filename}`
+  begin
+    yield output_filename
+  ensure
     File.delete(output_filename)
-
-    SpecRunOutput.new(output)
-  else
-    Program.new.run(code, filename: filename)
   end
 end
 
