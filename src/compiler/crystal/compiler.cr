@@ -228,7 +228,13 @@ module Crystal
       jobs_count = 0
 
       while unit = units.pop?
-        fork { codegen_single_unit(unit, target_triple, multithreaded) }
+        case LibC.fork
+        when 0
+          codegen_single_unit(unit, target_triple, multithreaded)
+          LibC._exit(0)
+        when -1
+          raise Errno.new("fork")
+        end
 
         jobs_count += 1
 

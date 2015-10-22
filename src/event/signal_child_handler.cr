@@ -56,7 +56,7 @@ class Event::SignalChildHandler
       @waiting[pid] = chan
     end
 
-    lazy do
+    future do
       chan.receive || raise Channel::ClosedError.new("waitpid channel closed after forking")
     end
   end
