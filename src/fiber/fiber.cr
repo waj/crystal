@@ -15,6 +15,7 @@ class Fiber
 
   @@stack_pool : Array(Void*)
   @@stack_pool = [] of Void*
+  @@fiber_list_mutex = Mutex.new
 
   @stack : Void*
   @resume_event : Event::Event?
@@ -53,12 +54,13 @@ class Fiber
       {{ raise "Unsupported platform, only x86_64 and i686 are supported." }}
     end
 
-    @prev_fiber = nil
-    if last_fiber = @@last_fiber
-      @prev_fiber = last_fiber
-      last_fiber.next_fiber = @@last_fiber = self
-    else
-      @@first_fiber = @@last_fiber = self
+    @@fiber_list_mutex.synchronize do
+      if last_fiber = @@last_fiber
+        @prev_fiber = last_fiber
+        last_fiber.next_fiber = @@last_fiber = self
+      else
+        @@first_fiber = @@last_fiber = self
+      end
     end
   end
 
@@ -66,9 +68,16 @@ class Fiber
     @proc = Fiber.proc { }
     @stack = Pointer(Void).null
     @stack_top = get_stack_top
-    @stack_bottom = LibGC.stackbottom
+    @stack_bottom = LibGC.get_stackbottom
 
-    @@first_fiber = @@last_fiber = self
+    @@fiber_list_mutex.synchronize do
+      if last_fiber = @@last_fiber
+        @prev_fiber = last_fiber
+        last_fiber.next_fiber = @@last_fiber = self
+      else
+        @@first_fiber = @@last_fiber = self
+      end
+    end
   end
 
   protected def self.allocate_stack
@@ -94,21 +103,24 @@ class Fiber
   end
 
   def run
+    GC.enable
     @proc.call
     @@stack_pool << @stack
 
     # Remove the current fiber from the linked list
 
-    if prev_fiber = @prev_fiber
-      prev_fiber.next_fiber = @next_fiber
-    else
-      @@first_fiber = @next_fiber
-    end
+    @@fiber_list_mutex.synchronize do
+      if prev_fiber = @prev_fiber
+        prev_fiber.next_fiber = @next_fiber
+      else
+        @@first_fiber = @next_fiber
+      end
 
-    if next_fiber = @next_fiber
-      next_fiber.prev_fiber = @prev_fiber
-    else
-      @@last_fiber = @prev_fiber
+      if next_fiber = @next_fiber
+        next_fiber.prev_fiber = @prev_fiber
+      else
+        @@last_fiber = @prev_fiber
+      end
     end
 
     # Delete the resume event if it was used by `yield` or `sleep`
@@ -158,9 +170,11 @@ class Fiber
   end
 
   def resume
+    GC.disable
     current, @@current = @@current, self
-    LibGC.stackbottom = @stack_bottom
+    LibGC.set_stackbottom @stack_bottom
     Fiber.switch_stacks(pointerof(current.@stack_top), pointerof(@stack_top))
+    GC.enable
   end
 
   def sleep(time)
@@ -204,6 +218,9 @@ class Fiber
   # TODO: we could do `Proc(Void).new {}`, but that currently types it as `Proc(Nil)`
   protected def self.proc(&block : ->)
     block
+  end
+
+  def self.current=(@@current)
   end
 
   @@prev_push_other_roots : ->

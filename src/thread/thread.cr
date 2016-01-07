@@ -49,6 +49,7 @@ class Thread(T, R)
 
   protected def start
     begin
+      Fiber.current = Fiber.new
       @ret = @func.call(@arg)
     rescue ex
       @exception = ex
