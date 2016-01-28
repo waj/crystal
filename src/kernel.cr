@@ -1,6 +1,6 @@
 STDIN  = IO::FileDescriptor.new(0, blocking: LibC.isatty(0) == 0)
-STDOUT = (IO::FileDescriptor.new(1, blocking: LibC.isatty(1) == 0)).tap { |f| f.flush_on_newline = true }
-STDERR = IO::FileDescriptor.new(2, blocking: LibC.isatty(2) == 0)
+STDOUT = (IO::FileDescriptor.new(1, blocking: true)).tap { |f| f.flush_on_newline = true }
+STDERR = IO::FileDescriptor.new(2, blocking: true)
 
 PROGRAM_NAME = String.new(ARGV_UNSAFE.value)
 ARGV         = (ARGV_UNSAFE + 1).to_slice(ARGC_UNSAFE - 1).map { |c_str| String.new(c_str) }
@@ -158,7 +158,7 @@ class Process
   # hooks defined here due to load order problems
   @@after_fork_child_callbacks : Array(-> Nil)
   @@after_fork_child_callbacks = [
-    ->{ Scheduler.after_fork; nil },
+    ->{ EventLoop.after_fork; nil },
     ->{ Event::SignalHandler.after_fork; nil },
     ->{ Event::SignalChildHandler.instance.after_fork; nil },
     ->{ Random::DEFAULT.new_seed; nil },

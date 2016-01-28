@@ -14,7 +14,7 @@ def sleep(time : Time::Span)
 end
 
 def sleep
-  Scheduler.reschedule
+  Scheduler.current.reschedule
 end
 
 macro spawn
@@ -28,7 +28,7 @@ macro spawn
     end
   end
 
-  Scheduler.enqueue %fiber
+  Scheduler.current.enqueue %fiber
 
   %fiber
 end
