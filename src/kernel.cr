@@ -154,6 +154,10 @@ def abort(message, status = 1)
   exit status
 end
 
+def log(msg, *args)
+  # LibC.printf "(%ld) #{msg}\n", LibPThread.self, *args
+end
+
 class Process
   # hooks defined here due to load order problems
   @@after_fork_child_callbacks : Array(-> Nil)
@@ -165,14 +169,14 @@ class Process
   ]
 end
 
-Signal::PIPE.ignore
-Signal::CHLD.reset
-at_exit { Event::SignalHandler.close }
+# Signal::PIPE.ignore
+# Signal::CHLD.reset
+# at_exit { Event::SignalHandler.close }
 
 # Background loop to cleanup unused fiber stacks
-spawn do
-  loop do
-    sleep 5
-    Fiber.stack_pool_collect
-  end
-end
+# spawn do
+#   loop do
+#     sleep 5
+#     Fiber.stack_pool_collect
+#   end
+# end

@@ -2,6 +2,7 @@ require "socket/libc"
 
 @[Link("rt")] ifdef linux
 @[Link("event")]
+@[Link("event_pthreads")]
 lib LibEvent2
   alias Int = LibC::Int
 
@@ -33,6 +34,8 @@ lib LibEvent2
   alias Callback = (EvutilSocketT, EventFlags, Void*) ->
 
   fun event_get_version : UInt8*
+  fun evthread_use_pthreads : Int
+  fun evthread_make_base_notifiable(EventBase) : Int
   fun event_base_new : EventBase
   fun event_base_dispatch(eb : EventBase) : Int
   fun event_base_loop(eb : EventBase, flags : EventLoopFlags) : Int
