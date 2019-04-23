@@ -5,16 +5,15 @@ class ZoneChannel(T)
   # @value_available = Thread::ConditionVariable.new
   @space_available = Thread::ConditionVariable.new
 
-  @[ThreadLocal]
-  @value_reader_per_thread : IO::FileDescriptor
+  @value_reader_per_thread = Hash(Thread, IO::FileDescriptor).new
 
   def initialize
     @value_reader, @value_writer = IO.pipe
-    @value_reader_per_thread = @value_reader
+    @value_reader_per_thread[Thread.current] = @value_reader
   end
 
   def to_unsafe_zone
-    @value_reader_per_thread = IO::FileDescriptor.new(@value_reader.fd, false)
+    @value_reader_per_thread[Thread.current] = IO::FileDescriptor.new(@value_reader.fd, false)
 
     self
   end
@@ -37,7 +36,7 @@ class ZoneChannel(T)
 
   def receive : T
     loop do
-      @value_reader_per_thread.read_fully(Bytes.new(1))
+      @value_reader_per_thread[Thread.current].read_fully(Bytes.new(1))
 
       @lock.synchronize do
         if @has_value
