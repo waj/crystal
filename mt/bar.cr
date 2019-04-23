@@ -6,6 +6,8 @@ THREADS = ARGV.fetch(0, "4").to_i
 ch = ZoneChannel(Nil).new
 
 Thread.new do
+  ch.to_unsafe_zone
+
   loop do
     ch.receive
 
@@ -15,8 +17,6 @@ Thread.new do
         sleep 1
       end
     end
-
-    sleep 0
   end
 end
 

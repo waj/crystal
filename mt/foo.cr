@@ -13,6 +13,8 @@ class HTTP::Server
 
     THREADS.times do |t|
       Thread.new do
+        @zone_channel.to_unsafe_zone
+
         # how to ensure `self` is safe to go cross-zone
         until self.closed?
           LibC.printf("handle %i\n", t)
@@ -21,8 +23,6 @@ class HTTP::Server
           io.clear_events! if io.responds_to?(:clear_events!)
 
           spawn handle_client(io)
-
-          sleep 0
         end
       end
     end
