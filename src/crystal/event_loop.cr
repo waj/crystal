@@ -1,8 +1,14 @@
 require "./event"
 
 module Crystal::EventLoop
+  @[ThreadLocal]
   @@eb = Crystal::Event::Base.new
+
+  @[ThreadLocal]
   @@dns_base : Crystal::Event::DnsBase?
+
+  @[ThreadLocal]
+  @@loop_fiber : Fiber?
 
   def self.after_fork
     @@eb.reinit

@@ -13,6 +13,11 @@ module IO::Evented
   @read_event : Crystal::Event?
   @write_event : Crystal::Event?
 
+  def clear_events!
+    @read_event = nil
+    @write_event = nil
+  end
+
   # Returns the time to wait when reading before raising an `IO::Timeout`.
   def read_timeout : Time::Span?
     @read_timeout
