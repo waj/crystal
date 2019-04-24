@@ -17,10 +17,10 @@ class HTTP::Server
 
         # how to ensure `self` is safe to go cross-zone
         until self.closed?
-          LibC.printf("handle %i\n", t)
+          LibC.printf("handle by %i\n", t)
 
           io = @zone_channel.receive # this blocks the entire thread
-          io.clear_events! if io.responds_to?(:clear_events!)
+          io.clear! if io.responds_to?(:clear!)
 
           spawn handle_client(io)
         end
@@ -41,7 +41,6 @@ class HTTP::Server
           end
 
           if io
-            LibC.printf("sent request\n")
             @zone_channel.send io
           end
         end
@@ -55,10 +54,8 @@ class HTTP::Server
 end
 
 server = HTTP::Server.new do |context|
-  LibC.printf("init\n")
   context.response.content_type = "text/plain"
   context.response.print "Hello world!"
-  LibC.printf("finish\n")
 end
 
 address = server.bind_tcp 8080

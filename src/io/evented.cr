@@ -13,9 +13,21 @@ module IO::Evented
   @read_event : Crystal::Event?
   @write_event : Crystal::Event?
 
-  def clear_events!
+  def clear!
     @read_event = nil
     @write_event = nil
+    @readers = nil
+    @writers = nil
+    @read_timeout = nil
+    @write_timeout = nil
+    @read_timed_out = false
+    @write_timed_out = false
+  end
+
+  def to_unsafe_zone
+    copy = self.dup
+    copy.clear!
+    copy
   end
 
   # Returns the time to wait when reading before raising an `IO::Timeout`.
