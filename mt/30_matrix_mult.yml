@@ -1,0 +1,23 @@
+name: 30_matrix_mult
+context:
+  crystal: ../bin/crystal eval 'puts Crystal::VERSION'
+  sha1: git describe
+  host: uname -a
+measure:
+  - time
+  - cpu_time
+  - max_rss
+run: ./30_matrix_mult $THREADS $SIZE
+repeat: 5
+before: ../bin/crystal build -D preview_mt --release 30_matrix_mult.cr -o ./30_matrix_mult
+after: rm -f ./30_matrix_mult ./30_matrix_mult.dwarf
+matrix:
+  env:
+    THREADS:
+      - 1
+      - 4
+      - 8
+    SIZE:
+      - 40
+      - 400
+      - 800

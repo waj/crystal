@@ -1,0 +1,30 @@
+name: 50_http_server_one_accept
+context:
+  crystal: ../bin/crystal eval 'puts Crystal::VERSION'
+  sha1: git describe
+  host: uname -a
+measure:
+  - time
+  - cpu_time
+  - max_rss
+  - requests_per_second:
+      regex: Requests per second:\s+(?<measure>\d+.\d+)\s+\[#/sec\] \(mean\)
+run: ./50_http_server_one_accept $THREADS
+repeat: 5
+loader: ./wait-for-it.sh 127.0.0.1:8080 -- ab -c $CONNECTIONS -n $REQUESTS http://127.0.0.1:8080/
+before: ../bin/crystal build -D preview_mt --release 50_http_server_one_accept.cr -o ./50_http_server_one_accept
+after: rm -f ./50_http_server_one_accept ./50_http_server_one_accept.dwarf
+matrix:
+  env:
+    THREADS:
+      - 2
+      - 4
+      - 8
+    REQUESTS:
+      - 100
+      - 10000
+      - 1000000
+    CONNECTIONS:
+      - 5
+      - 10
+      - 100
