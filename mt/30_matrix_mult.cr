@@ -28,6 +28,9 @@ else
 
   THREADS.times do |w|
     Thread.new do
+      request.to_unsafe_zone
+      done.to_unsafe_zone
+
       loop do
         i = request.receive
 
@@ -41,6 +44,8 @@ else
   end
 
   Thread.new do
+    request.to_unsafe_zone
+
     SIZE.times do |i|
       request.send(i)
     end
