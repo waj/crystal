@@ -2,6 +2,7 @@ require "http/server"
 require "./zone_channel"
 
 THREADS = ARGV.fetch(0, "4").to_i
+pp! THREADS
 
 class HTTP::Server
   # @zone_channel = ZoneChannel(Array(Socket::Server)).new # should be a thread-safe/readonly array
@@ -34,7 +35,7 @@ class HTTP::Server
               end
 
               if io
-                LibC.printf("handle by %i\n", t)
+                # LibC.printf("handle by %i\n", t)
                 _io = io
                 spawn handle_client(_io)
               end

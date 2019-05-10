@@ -2,6 +2,7 @@ require "http/server"
 require "./zone_channel"
 
 THREADS = ARGV.fetch(0, "4").to_i
+pp! THREADS
 
 class HTTP::Server
   @zone_channel = ZoneChannel(IO).new
@@ -17,7 +18,7 @@ class HTTP::Server
 
         # how to ensure `self` is safe to go cross-zone
         until self.closed?
-          LibC.printf("handle by %i\n", t)
+          # LibC.printf("handle by %i\n", t)
 
           io = @zone_channel.receive # this blocks the entire thread
           io.clear! if io.responds_to?(:clear!)

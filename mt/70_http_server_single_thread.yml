@@ -1,0 +1,28 @@
+name: 70_http_server_single_thread
+context:
+  crystal: ../bin/crystal eval 'puts Crystal::VERSION'
+  sha1: git describe
+  host: uname -a
+measure:
+  - time
+  - cpu_time
+  - max_rss
+  - requests_per_second:
+      regex: Requests per second:\s+(?<measure>\d+.\d+)\s+\[#/sec\] \(mean\)
+run: ./70_http_server_single_thread
+repeat: 5
+loader: ./wait-for-it.sh 127.0.0.1:8080 -- ab -c $CONNECTIONS -n $REQUESTS http://127.0.0.1:8080/
+before: ../bin/crystal build --release ../samples/http_server.cr -o ./70_http_server_single_thread
+after: rm -f ./70_http_server_single_thread ./70_http_server_single_thread.dwarf
+matrix:
+  env:
+    THREADS:
+      - 1
+    REQUESTS:
+      - 100
+      - 10000
+      - 1000000
+    CONNECTIONS:
+      - 5
+      - 10
+      - 100
