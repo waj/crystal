@@ -2,13 +2,14 @@ class SpinLock
   @m = Atomic(Int32).new(0)
 
   def lock
-    until @m.compare_and_set(0, 1).last
+    while @m.swap(1) == 1
+      while @m.get == 1
+      end
     end
   end
 
   def unlock
-    until @m.compare_and_set(1, 0).last
-    end
+    @m.lazy_set(0)
   end
 
   def sync
