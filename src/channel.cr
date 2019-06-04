@@ -178,37 +178,53 @@ abstract class Channel(T)
 end
 
 class Channel::Buffered(T) < Channel(T)
+  {% if flag?(:preview_mt) %}
+    @lock = SpinLock.new
+  {% else %}
+    @lock = NullLock.new
+  {% end %}
+
   def initialize(@capacity = 32)
     @queue = Deque(T).new(@capacity)
     super()
   end
 
   def send(value : T)
-    while full?
+    @lock.sync do
+      while full?
+        raise_if_closed
+        @senders << Fiber.current
+        @lock.unsync do
+          Crystal::Scheduler.reschedule
+        end
+      end
+
       raise_if_closed
-      @senders << Fiber.current
-      Crystal::Scheduler.reschedule
+
+      @queue << value
+      if receiver = @receivers.shift?
+        receiver.restore
+      end
     end
-
-    raise_if_closed
-
-    @queue << value
-    Crystal::Scheduler.enqueue @receivers
-    @receivers.clear
 
     self
   end
 
   private def receive_impl
-    while empty?
-      yield if @closed
-      @receivers << Fiber.current
-      Crystal::Scheduler.reschedule
-    end
+    @lock.sync do
+      while empty?
+        yield if @closed
+        @receivers << Fiber.current
+        @lock.unsync do
+          Crystal::Scheduler.reschedule
+        end
+      end
 
-    @queue.shift.tap do
-      Crystal::Scheduler.enqueue @senders
-      @senders.clear
+      @queue.shift.tap do
+        if sender = @senders.shift?
+          sender.restore
+        end
+      end
     end
   end
 
