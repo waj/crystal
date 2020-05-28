@@ -60,5 +60,8 @@ describe "add" do
   run_add_tests Int8, UInt16
   run_add_tests UInt8, UInt8
   run_add_tests UInt8, UInt16
+  run_add_tests UInt32, UInt8
+  run_add_tests UInt32, UInt16
+  run_add_tests UInt32, UInt32
   # run_add_tests UInt64, Int64
 end
