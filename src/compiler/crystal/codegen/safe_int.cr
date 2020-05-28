@@ -35,6 +35,7 @@ class Crystal::CodeGenVisitor
       return IntLT32_UintLT32 if t1.signed? && t2.unsigned? && is_both_lt32bit(t1, t2)
       return Uint32_UintLT64 if is_both_unsigned(t1, t2) && is_32bit(t1) && is_lt64bit(t2)
       return UintLT32_Uint32 if is_both_unsigned(t1, t2) && is_lt32bit(t1) && is_32bit(t2)
+      return Uint64_Uint if is_both_unsigned(t1, t2) && is_64bit(t1)
       raise "Unsuported zone: #{t1} #{t2}"
     end
 
@@ -57,6 +58,10 @@ class Crystal::CodeGenVisitor
     def self.is_lt64bit(t)
       t.bytes < 8
     end
+
+    def self.is_64bit(t)
+      t.bytes == 8
+    end
   end
 
   def codegen_safe_int_add(t1, t2, p1, p2)
@@ -65,6 +70,7 @@ class Crystal::CodeGenVisitor
     when IntZone::IntLT32_UintLT32  then add_cast_int_check_max(t1, t2, p1, p2)
     when IntZone::Uint32_UintLT64   then add_cast_uint_check_overflow(t1, t2, p1, p2)
     when IntZone::UintLT32_Uint32   then add_cast_uint_check_overflow_max(t1, t2, p1, p2)
+    when IntZone::Uint64_Uint       then add_cast_uint64_check_overflow(t1, t2, p1, p2)
     else                                 raise "Unsuported zone for add: #{t1} #{t2}"
     end
   end
@@ -100,6 +106,16 @@ class Crystal::CodeGenVisitor
       codegen_binary_op_lt(@program.uint32, t1, tmp, p1),
       codegen_binary_op_gt(@program.uint32, t1, tmp, int(max_value, t1))
     )
+    codegen_raise_overflow_cond(overflow)
+    trunc tmp, llvm_type(t1)
+  end
+
+  def add_cast_uint64_check_overflow(t1, t2, p1, p2)
+    p1 = extend_int(t1, @program.uint64, p1)
+    p2 = extend_int(t2, @program.uint64, p2)
+    tmp = builder.add(p1, p2)
+
+    overflow = codegen_binary_op_lt @program.uint64, t1, tmp, p1
     codegen_raise_overflow_cond(overflow)
     trunc tmp, llvm_type(t1)
   end
