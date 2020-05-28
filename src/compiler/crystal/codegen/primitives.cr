@@ -131,6 +131,11 @@ class Crystal::CodeGenVisitor
     else # go on
     end
 
+    case op
+    when "safe_add" then return codegen_safe_int_add(t1, t2, p1, p2)
+    else # go on
+    end
+
     tmax, p1, p2 = codegen_binary_extend_int(t1, t2, p1, p2)
 
     case op

@@ -329,6 +329,11 @@ end
       end
 
       {% for int2 in ints %}
+        @[Primitive(:binary)]
+        @[Raises]
+        def safe_add(other : {{int2.id}}) : self
+        end
+
         {% for op, desc in binaries %}
           # Returns the result of {{desc.id}} `self` and *other*.
           # Raises `OverflowError` in case of overflow.
