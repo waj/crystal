@@ -32,6 +32,7 @@ class Crystal::CodeGenVisitor
 
     def self.for(t1, t2)
       return UintLT32_UintLT32 if is_both_unsigned(t1, t2) && is_both_lt32bit(t1, t2)
+      return IntLT32_UintLT32 if t1.signed? && t2.unsigned? && is_both_lt32bit(t1, t2)
       raise "Unsuported zone: #{t1} #{t2}"
     end
 
@@ -47,6 +48,7 @@ class Crystal::CodeGenVisitor
   def codegen_safe_int_add(t1, t2, p1, p2)
     case IntZone.for(t1, t2)
     when IntZone::UintLT32_UintLT32 then add_cast_int_check_max(t1, t2, p1, p2)
+    when IntZone::IntLT32_UintLT32  then add_cast_int_check_max(t1, t2, p1, p2)
     else                                 raise "Unsuported zone for add: #{t1} #{t2}"
     end
   end
