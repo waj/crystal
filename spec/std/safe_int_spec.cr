@@ -15,6 +15,10 @@ struct UInt8
   TEST_CASES = test_cases [0x00, 0x01, 0x02, 0x7e, 0x7f, 0x80, 0x81, 0xfe, 0xff]
 end
 
+struct Int16
+  TEST_CASES = test_cases [0x0000, 0x0001, 0x0002, 0x7ffe, 0x7fff, 0x8000, 0x8001, 0xfffe, 0xffff]
+end
+
 struct UInt16
   TEST_CASES = test_cases [0x0000, 0x0001, 0x0002, 0x7ffe, 0x7fff, 0x8000, 0x8001, 0xfffe, 0xffff]
 end
@@ -72,6 +76,14 @@ describe "add" do
   run_add_tests UInt8, UInt64
   run_add_tests UInt16, UInt64
   run_add_tests UInt32, UInt64
+  run_add_tests UInt8, Int8
+  run_add_tests UInt8, Int16
+  run_add_tests UInt16, Int8
+  run_add_tests UInt16, Int16
+  run_add_tests Int8, Int8
+  run_add_tests Int8, Int16
+  run_add_tests Int16, Int8
+  run_add_tests Int16, Int16
 
   # run_add_tests UInt64, Int64
 end
