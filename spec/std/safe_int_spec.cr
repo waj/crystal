@@ -69,6 +69,9 @@ describe "add" do
   run_add_tests UInt64, UInt16
   run_add_tests UInt64, UInt32
   run_add_tests UInt64, UInt64
+  run_add_tests UInt8, UInt64
+  run_add_tests UInt16, UInt64
+  run_add_tests UInt32, UInt64
 
   # run_add_tests UInt64, Int64
 end
