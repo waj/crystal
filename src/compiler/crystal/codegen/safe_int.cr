@@ -2,7 +2,7 @@ require "./codegen"
 
 class Crystal::CodeGenVisitor
   enum IntZone
-    # unsigned-unsigned zone
+    # unsigned-unsigned
     UintLT32_UintLT32
     Uint32_UintLT64
     UintLT32_Uint32
@@ -31,18 +31,22 @@ class Crystal::CodeGenVisitor
     Int64_Uint64
 
     def self.for(t1, t2)
+      # unsigned-unsigned
       return UintLT32_UintLT32 if is_both_unsigned(t1, t2) && is_both_lt32bit(t1, t2)
-      return IntLT32_UintLT32 if t1.signed? && t2.unsigned? && is_both_lt32bit(t1, t2)
       return Uint32_UintLT64 if is_both_unsigned(t1, t2) && is_32bit(t1) && is_lt64bit(t2)
       return UintLT32_Uint32 if is_both_unsigned(t1, t2) && is_lt32bit(t1) && is_32bit(t2)
       return Uint64_Uint if is_both_unsigned(t1, t2) && is_64bit(t1)
       return UintLT64_Uint64 if is_both_unsigned(t1, t2) && is_lt64bit(t1) && is_64bit(t2)
+      # unsigned-signed
       return UintLT32_IntLT32 if t1.unsigned? && t2.signed? && is_both_lt32bit(t1, t2)
-      return IntLT32_IntLT32 if is_both_signed(t1, t2) && is_both_lt32bit(t1, t2)
       return Uint32_IntLT64 if t1.kind == :u32 && t2.signed? && is_lt64bit(t2)
       return UintLT32_Int32 if t1.unsigned? && is_lt32bit(t1) && t2.kind == :i32
+      # signed-signed
+      return IntLT32_IntLT32 if is_both_signed(t1, t2) && is_both_lt32bit(t1, t2)
       return Int32_IntLT64 if is_both_signed(t1, t2) && is_32bit(t1) && is_lt64bit(t2)
       return IntLT32_Int32 if is_both_signed(t1, t2) && is_lt32bit(t1) && is_32bit(t2)
+      # signed-unsigned
+      return IntLT32_UintLT32 if t1.signed? && t2.unsigned? && is_both_lt32bit(t1, t2)
 
       raise "Unsuported zone: #{t1} #{t2}"
     end
@@ -78,19 +82,23 @@ class Crystal::CodeGenVisitor
 
   def codegen_safe_int_add(t1, t2, p1, p2)
     case IntZone.for(t1, t2)
+    # unsigned-unsigned
     when IntZone::UintLT32_UintLT32 then add_cast_int_check_max(t1, t2, p1, p2)
-    when IntZone::IntLT32_UintLT32  then add_cast_int_check_max(t1, t2, p1, p2)
     when IntZone::Uint32_UintLT64   then add_cast_uint_check_overflow(t1, t2, p1, p2)
     when IntZone::UintLT32_Uint32   then add_cast_uint_check_overflow_max(t1, t2, p1, p2)
     when IntZone::Uint64_Uint       then add_cast_uint64_check_overflow(t1, t2, p1, p2)
     when IntZone::UintLT64_Uint64   then add_cast_uint64_check_overflow_max(t1, t2, p1, p2)
-    when IntZone::UintLT32_IntLT32  then add_cast_int_check_safe_int_min_max(t1, t2, p1, p2)
-    when IntZone::IntLT32_IntLT32   then add_cast_int_check_safe_int_min_max(t1, t2, p1, p2)
-    when IntZone::Uint32_IntLT64    then add_cast_int64_check_safe_int_min_max(t1, t2, p1, p2)
-    when IntZone::UintLT32_Int32    then add_cast_int64_check_safe_int_min_max(t1, t2, p1, p2)
-    when IntZone::Int32_IntLT64     then add_cast_int64_check_safe_int_min_max(t1, t2, p1, p2)
-    when IntZone::IntLT32_Int32     then add_cast_int64_check_safe_int_min_max(t1, t2, p1, p2)
-    else                                 raise "Unsuported zone for add: #{t1} #{t2}"
+      # unsigned-signed
+    when IntZone::UintLT32_IntLT32 then add_cast_int_check_safe_int_min_max(t1, t2, p1, p2)
+    when IntZone::Uint32_IntLT64   then add_cast_int64_check_safe_int_min_max(t1, t2, p1, p2)
+    when IntZone::UintLT32_Int32   then add_cast_int64_check_safe_int_min_max(t1, t2, p1, p2)
+      # signed-signed
+    when IntZone::IntLT32_IntLT32 then add_cast_int_check_safe_int_min_max(t1, t2, p1, p2)
+    when IntZone::Int32_IntLT64   then add_cast_int64_check_safe_int_min_max(t1, t2, p1, p2)
+    when IntZone::IntLT32_Int32   then add_cast_int64_check_safe_int_min_max(t1, t2, p1, p2)
+      # signed-unsigned
+    when IntZone::IntLT32_UintLT32 then add_cast_int_check_max(t1, t2, p1, p2)
+    else                                raise "Unsuported zone for add: #{t1} #{t2}"
     end
   end
 
