@@ -78,9 +78,9 @@ class Crystal::CodeGenVisitor
   end
 
   def add_cast_int_check_max(t1, t2, p1, p2)
-    p1 = extend_int(t1, @program.int32, p1)
-    p2 = extend_int(t2, @program.int32, p2)
-    tmp = builder.add(p1, p2)
+    ep1 = extend_int(t1, @program.int32, p1)
+    ep2 = extend_int(t2, @program.int32, p2)
+    tmp = builder.add(ep1, ep2)
 
     _, max_value = t1.range
     overflow = codegen_binary_op_gt @program.int32, @program.int32, tmp, int(max_value, @program.int32)
@@ -89,9 +89,9 @@ class Crystal::CodeGenVisitor
   end
 
   def add_cast_uint_check_overflow(t1, t2, p1, p2)
-    p1 = extend_int(t1, @program.uint32, p1)
-    p2 = extend_int(t2, @program.uint32, p2)
-    tmp = builder.add(p1, p2)
+    ep1 = extend_int(t1, @program.uint32, p1)
+    ep2 = extend_int(t2, @program.uint32, p2)
+    tmp = builder.add(ep1, ep2)
 
     overflow = codegen_binary_op_lt @program.uint32, t1, tmp, p1
     codegen_raise_overflow_cond(overflow)
@@ -99,9 +99,9 @@ class Crystal::CodeGenVisitor
   end
 
   def add_cast_uint_check_overflow_max(t1, t2, p1, p2)
-    p1 = extend_int(t1, @program.uint32, p1)
-    p2 = extend_int(t2, @program.uint32, p2)
-    tmp = builder.add(p1, p2)
+    ep1 = extend_int(t1, @program.uint32, p1)
+    ep2 = extend_int(t2, @program.uint32, p2)
+    tmp = builder.add(ep1, ep2)
 
     _, max_value = t1.range
     overflow = or(
@@ -113,9 +113,9 @@ class Crystal::CodeGenVisitor
   end
 
   def add_cast_uint64_check_overflow(t1, t2, p1, p2)
-    p1 = extend_int(t1, @program.uint64, p1)
-    p2 = extend_int(t2, @program.uint64, p2)
-    tmp = builder.add(p1, p2)
+    ep1 = extend_int(t1, @program.uint64, p1)
+    ep2 = extend_int(t2, @program.uint64, p2)
+    tmp = builder.add(ep1, ep2)
 
     overflow = codegen_binary_op_lt @program.uint64, t1, tmp, p1
     codegen_raise_overflow_cond(overflow)
@@ -123,9 +123,9 @@ class Crystal::CodeGenVisitor
   end
 
   def add_cast_uint64_check_overflow_max(t1, t2, p1, p2)
-    p1 = extend_int(t1, @program.uint64, p1)
-    p2 = extend_int(t2, @program.uint64, p2)
-    tmp = builder.add(p1, p2)
+    ep1 = extend_int(t1, @program.uint64, p1)
+    ep2 = extend_int(t2, @program.uint64, p2)
+    tmp = builder.add(ep1, ep2)
 
     _, max_value = t1.range
     overflow = or(
