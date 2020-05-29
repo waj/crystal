@@ -39,6 +39,10 @@ class Crystal::CodeGenVisitor
       return UintLT64_Uint64 if is_both_unsigned(t1, t2) && is_lt64bit(t1) && is_64bit(t2)
       return UintLT32_IntLT32 if t1.unsigned? && t2.signed? && is_both_lt32bit(t1, t2)
       return IntLT32_IntLT32 if is_both_signed(t1, t2) && is_both_lt32bit(t1, t2)
+      return Uint32_IntLT64 if t1.kind == :u32 && t2.signed? && is_lt64bit(t2)
+      return UintLT32_Int32 if t1.unsigned? && is_lt32bit(t1) && t2.kind == :i32
+      return Int32_IntLT64 if is_both_signed(t1, t2) && is_32bit(t1) && is_lt64bit(t2)
+      return IntLT32_Int32 if is_both_signed(t1, t2) && is_lt32bit(t1) && is_32bit(t2)
 
       raise "Unsuported zone: #{t1} #{t2}"
     end
@@ -82,6 +86,10 @@ class Crystal::CodeGenVisitor
     when IntZone::UintLT64_Uint64   then add_cast_uint64_check_overflow_max(t1, t2, p1, p2)
     when IntZone::UintLT32_IntLT32  then add_cast_int_check_safe_int_min_max(t1, t2, p1, p2)
     when IntZone::IntLT32_IntLT32   then add_cast_int_check_safe_int_min_max(t1, t2, p1, p2)
+    when IntZone::Uint32_IntLT64    then add_cast_int64_check_safe_int_min_max(t1, t2, p1, p2)
+    when IntZone::UintLT32_Int32    then add_cast_int64_check_safe_int_min_max(t1, t2, p1, p2)
+    when IntZone::Int32_IntLT64     then add_cast_int64_check_safe_int_min_max(t1, t2, p1, p2)
+    when IntZone::IntLT32_Int32     then add_cast_int64_check_safe_int_min_max(t1, t2, p1, p2)
     else                                 raise "Unsuported zone for add: #{t1} #{t2}"
     end
   end
@@ -154,6 +162,20 @@ class Crystal::CodeGenVisitor
     overflow = or(
       codegen_binary_op_lt(@program.int32, t1, tmp, int(min_value, t1)),
       codegen_binary_op_gt(@program.int32, t1, tmp, int(max_value, t1))
+    )
+    codegen_raise_overflow_cond(overflow)
+    trunc tmp, llvm_type(t1)
+  end
+
+  def add_cast_int64_check_safe_int_min_max(t1, t2, p1, p2)
+    ep1 = extend_int(t1, @program.int64, p1)
+    ep2 = extend_int(t2, @program.int64, p2)
+    tmp = builder.add(ep1, ep2)
+
+    min_value, max_value = t1.range
+    overflow = or(
+      codegen_binary_op_lt(@program.int64, t1, tmp, int(min_value, t1)),
+      codegen_binary_op_gt(@program.int64, t1, tmp, int(max_value, t1))
     )
     codegen_raise_overflow_cond(overflow)
     trunc tmp, llvm_type(t1)
