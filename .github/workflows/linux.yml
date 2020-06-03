@@ -2,6 +2,11 @@ name: Linux CI
 
 on: push
 
+env:
+  TRAVIS_OS_NAME: linux
+  ARCH: x86_64
+  ARCH_CMD: linux64
+
 jobs:
   test_linux:
     runs-on: ubuntu-latest
