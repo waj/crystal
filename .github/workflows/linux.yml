@@ -1,0 +1,16 @@
+name: Linux CI
+
+on: push
+
+jobs:
+  test_linux:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Crystal source
+        uses: actions/checkout@v2
+
+      - name: Prepare Build
+        run: bin/ci prepare_build
+
+      - name: Test
+        run: bin/ci build
