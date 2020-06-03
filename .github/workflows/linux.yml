@@ -14,6 +14,9 @@ jobs:
       - name: Download Crystal source
         uses: actions/checkout@v2
 
+      - name: Prepare System
+        run: bin/ci prepare_system
+
       - name: Prepare Build
         run: bin/ci prepare_build
 
