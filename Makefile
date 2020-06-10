@@ -89,7 +89,17 @@ std_spec: $(O)/std_spec ## Run standard library specs
 
 .PHONY: compiler_spec
 compiler_spec: $(O)/compiler_spec ## Run compiler specs
-	$(O)/compiler_spec $(SPEC_FLAGS)
+	CRYSTAL_CACHE_DIR="$(shell ./bin/crystal env CRYSTAL_CACHE_DIR)/0" SPEC_SPLIT="0%8" $(O)/compiler_spec $(SPEC_FLAGS) & P0=$$! ;\
+	CRYSTAL_CACHE_DIR="$(shell ./bin/crystal env CRYSTAL_CACHE_DIR)/1" SPEC_SPLIT="1%8" $(O)/compiler_spec $(SPEC_FLAGS) & P1=$$! ;\
+	CRYSTAL_CACHE_DIR="$(shell ./bin/crystal env CRYSTAL_CACHE_DIR)/2" SPEC_SPLIT="2%8" $(O)/compiler_spec $(SPEC_FLAGS) & P2=$$! ;\
+	CRYSTAL_CACHE_DIR="$(shell ./bin/crystal env CRYSTAL_CACHE_DIR)/3" SPEC_SPLIT="3%8" $(O)/compiler_spec $(SPEC_FLAGS) & P3=$$! ;\
+	CRYSTAL_CACHE_DIR="$(shell ./bin/crystal env CRYSTAL_CACHE_DIR)/4" SPEC_SPLIT="4%8" $(O)/compiler_spec $(SPEC_FLAGS) & P4=$$! ;\
+	CRYSTAL_CACHE_DIR="$(shell ./bin/crystal env CRYSTAL_CACHE_DIR)/5" SPEC_SPLIT="5%8" $(O)/compiler_spec $(SPEC_FLAGS) & P5=$$! ;\
+	CRYSTAL_CACHE_DIR="$(shell ./bin/crystal env CRYSTAL_CACHE_DIR)/6" SPEC_SPLIT="6%8" $(O)/compiler_spec $(SPEC_FLAGS) & P6=$$! ;\
+	CRYSTAL_CACHE_DIR="$(shell ./bin/crystal env CRYSTAL_CACHE_DIR)/7" SPEC_SPLIT="7%8" $(O)/compiler_spec $(SPEC_FLAGS) & P7=$$! ;\
+	wait $$P0 && wait $$P1 && wait $$P2 && wait $$P3 && wait $$P4 && wait $$P5 && wait $$P6 && wait $$P7
+
+	# $(O)/compiler_spec $(SPEC_FLAGS)
 
 .PHONY: docs
 docs: ## Generate standard library documentation
