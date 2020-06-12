@@ -23,6 +23,10 @@ jobs:
       - name: Test
         run: bin/ci build
 
+      - name: Show libs
+        run: otool -L .build/std_spec
+        if: always()
+
       - name: Publish Test Report
         uses: scacap/action-surefire-report@v1
         if: always()

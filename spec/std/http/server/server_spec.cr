@@ -313,6 +313,9 @@ describe HTTP::Server do
       ip_address1 = server.bind_tls "127.0.0.1", 0, server_context
       ip_address2 = socket.local_address
 
+      pp! ip_address1.to_s
+      pp! ip_address2.to_s
+
       run_server(server) do
         HTTP::Client.get("https://#{ip_address1}", tls: client_context).body.should eq "Test Server (#{ip_address1})\n"
         HTTP::Client.get("https://#{ip_address2}", tls: client_context).body.should eq "Test Server (#{ip_address2})\n"
